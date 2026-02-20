@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List, Annotated
 from .product_enum import (
     UnitOfMeasure,
@@ -18,6 +18,14 @@ from .product_enum import (
     ProductStatus,
 )
 
+# Min Value Constants for sized type
+HEAVY_MIN_KG = 50.0    # min weight for heavy size type
+LIGH_MAX_KG = 10.0     # max weight for light size type
+OVERSIZED_MIN_CM = 200.0   # min size for oversized size type
+SMALL_PARTS_MAX_CM = 30.0   # max size for small parts size type
+
+
+# Validation Constants
 SKU_VALID = Annotated[str, Field(pattern=r'^[A-Z0-9]{3,20}$', min_length=1, max_length=50, description='Unique SKU (Stock Keeping Unit)')]
 POSITIVE_F = Annotated[float, Field(ge=0)]
 NAME_VALID = Annotated[str, Field(min_length=1, max_length=50, json_schema_extra={'strip_whitespace': True})]
@@ -101,15 +109,168 @@ class BaseProduct(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Las update timestamp')
 
+    # ------ For products that need their production and expiry date --------
+    productoin_date: Optional[date] = Field(None, description='Date of product production')
+    expiry_date: Optional[date] = Field(None, description='Date of product expiry')
     # -------- Validators ---------
     @model_validator(mode='after')
     def check_hazard_cls(self) -> 'BaseProduct':
-        if self.storage_condition == ProductStorageCondition.HAZARDOUS and self.hazard_class is None:
-            raise ValueError('hazard_class is required for hazardous product')
+        """Validation Hazard class and Hazardous product"""
+        if (self.storage_condition == ProductStorageCondition.HAZARDOUS and self.hazard_class is None
+            or self.hazard_class and self.storage_condition != ProductStorageCondition.HAZARDOUS):
+            raise ValueError('Field hazard_class only need for Hazardous products')
         return self
     
     @model_validator(mode='after')
     def check_temp_regime(self) -> 'BaseProduct':
-        if self.storage_condition == ProductStorageCondition.TEMPERATURE_CONTROLLED and self.temperature_regime is None:
-            raise ValueError('temperature_regime is required for temperature-controlled product')
+        """If product_storage_condition type is Temperature_regime we need to check temperature_regime"""
+        if self.storage_condition in (
+            ProductStorageCondition.PERISHABLE,
+            ProductStorageCondition.TEMPERATURE_CONTROLLED
+        ) and self.temperature_regime is None:
+            raise ValueError('temperature_regime is required for Temperature-controlled or Perishable products')
         return self
+
+    @model_validator(mode='after')
+    def validate_dims_and_vol(self) -> 'BaseProduct':
+        """If product have all three dimensions and volume in not defined, calculates it auto"""
+        if (self.volume_m3 is None and
+            self.height_cm is not None and
+            self.width_cm is not None and 
+            self.depth_cm is not None):
+            # Volume in cm: (1 m^3 = 1 000 000 m^3)
+            computed_volume = (self.width_cm * self.height_cm * self.depth_cm) / 1_000_000
+            # Setting volume value
+            object.__setattr__(self, 'volume_m3', computed_volume)
+        return self
+    
+    @model_validator(mode='after')
+    def validate_perishable(self) -> 'BaseProduct':
+        """Validation for Product type Perishable"""
+        if self.storage_condition == ProductStorageCondition.PERISHABLE:
+            if self.productoin_date is None:
+                raise ValueError('production_date is required for Perishable products')
+            if self.expiry_date is None:
+                raise ValueError('expiry_date is required for Perishable products')
+            if self.expiry_date <= self.productoin_date:
+                raise ValueError('expiry_date must be later the production_date')
+            if self.expiry_date < date.today():
+                raise ValueError('Product expiry_date is out of date')
+            if self.tracking_type != ProductTrackingType.EXPIRY_TRACKED:
+                raise ValueError('For Perishable product  tracking_type must be expiry_tracked')
+        return self
+    
+    @model_validator(mode='after')
+    def validate_date_consistensy(self) -> 'BaseProduct':
+        """Validation for dates"""
+        if self.expiry_date and self.productoin_date:
+            if self.expiry_date <= self.productoin_date:
+                raise ValueError('expiry_date must be later than production_date')
+            if self.expiry_date < date.today():
+                raise ValueError('Product expiry_date is out of date')
+        return self
+    
+    @model_validator(mode='after')
+    def check_timesmaps(self) -> 'BaseProduct':
+        """Check timestamps"""
+        if self.updated_at < self.created_at:
+            raise ValueError('updated_at cant be earlier than creation_at')
+        return self
+    
+    @model_validator(mode='after')
+    def validate_units(self) -> 'BaseProduct':
+        """Validation for units"""
+        # ------- Dict for all units type ---------
+        weight_units = {UnitOfMeasure.KILOGRAM, UnitOfMeasure.GRAM}
+        piece_units = {UnitOfMeasure.PIECE, UnitOfMeasure.BOX, UnitOfMeasure.PALLET, UnitOfMeasure.SET}
+        volume_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER, UnitOfMeasure.CUBIC_METER}
+        liquid_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER}
+        gas_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER, UnitOfMeasure.CUBIC_METER}
+        bulk_units = weight_units | {UnitOfMeasure.CUBIC_METER}
+
+        # ------- Tracking type unit validation -------
+        # Weight based
+        if self.tracking_type == ProductTrackingType.WEIGHT_BASED:
+            if self.unit_of_measure not in weight_units:
+                raise ValueError('For tracking type Weight-Based products units must be in kg or gram')
+        # Piece
+        elif self.tracking_type == ProductTrackingType.PIECE:
+            if self.unit_of_measure not in piece_units:
+                raise ValueError('For tracking type Piece products units must be in pc, box, pallet or set')
+        # Kit
+        elif self.tracking_type == ProductTrackingType.KIT:
+            if self.unit_of_measure not in (UnitOfMeasure.SET, UnitOfMeasure.PIECE):
+                raise ValueError('For tracking type Kit products units must be in set or pc')
+            
+        # ---------- Physical state unit validation
+        # Liquids
+        if self.physical_state == ProductPhysicalState.LIQUID:
+            if self.unit_of_measure not in liquid_units:
+                raise ValueError('For products with physical state Liquid units must be in liter or mililiter')
+        # Gas
+        elif self.physical_state == ProductPhysicalState.GAS:
+            # Checking unit
+            if self.unit_of_measure not in gas_units:
+                raise ValueError('For products with physical state Gas units must be in liter, mililiter or cubic meter')
+            # Addtional chacking packaging type
+            if self.packaging_type not in (PackagingType.CYLINDER, PackagingType.DRUM, None):
+                raise ValueError('For products with physical state Gas packaging type must be in cylinder or drum')
+        # Bulk
+        elif self.physical_state == ProductPhysicalState.BULK:
+            if self.unit_of_measure not in bulk_units:
+                raise ValueError('For products physical type Bulk units must be in weight or volume')
+        return self
+    
+    @model_validator(mode='after')
+    def validate_size_type(self) -> 'BaseProduct':
+        """Validation for size type"""
+        # Heavy
+        if self.size_type == ProductSizeType.HEAVY:
+            # Checking weight noen or not
+            if self.weight_kg is None:
+                raise ValueError('For size_type Heavy products required weight_kg field')
+            # Checking limit
+            if self.weight_kg <= HEAVY_MIN_KG:
+                raise ValueError(f'For size_type Heavy products min required weitgh is {HEAVY_MIN_KG} kg')
+            
+        # Over-sized
+        elif self.size_type == ProductSizeType.OVERSIZED:
+            # Checkin contains dimension or not
+            if self.width_cm is None and self.height_cm is None and self.depth_cm is None:
+                raise ValueError('For size_type Over-sized products min required 1 of 3 dimension(weight/height/depth)')
+            # chekcing min cm of dimensions
+            if not (self.width_cm and self.width_cm > OVERSIZED_MIN_CM or
+                    self.height_cm and self.height_cm > OVERSIZED_MIN_CM or
+                    self.depth_cm and self.depth_cm > OVERSIZED_MIN_CM):
+                raise ValueError(f'For size_type Over-sized products min required size is {OVERSIZED_MIN_CM} cm')
+        
+        # Light
+        elif self.size_type == ProductSizeType.LIGHT:
+            # Checking weight is none or not
+            if self.weight_kg is None:
+                raise ValueError('For sized_type Light products required weight_kg field')
+            # Checking max weight for light products
+            if self.weight_kg > LIGH_MAX_KG:
+                raise ValueError(f'For size_type Light products max required weight is {LIGH_MAX_KG} kg')
+            
+        # Small-parts
+        elif self.size_type == ProductSizeType.SMALL_PARTS:
+            # Checkin contains dimension or not
+            if self.width_cm is None and self.height_cm is None and self.depth_cm is None:
+                raise ValueError('For size_type Small-parts products min required 1 of 3 dimension(weight/height/depth)')
+            # chekcing min cm of dimensions
+            if not (self.width_cm and self.width_cm < SMALL_PARTS_MAX_CM or
+                    self.height_cm and self.height_cm < SMALL_PARTS_MAX_CM or
+                    self.depth_cm and self.depth_cm < SMALL_PARTS_MAX_CM):
+                raise ValueError(f'For size_type Small-parts products max required size is {SMALL_PARTS_MAX_CM} cm')
+
+        # For other size types if we need we add conditions for them
+        # later not know caouse its not required
+        return self
+    
+
+            
+
+        
+
+    
