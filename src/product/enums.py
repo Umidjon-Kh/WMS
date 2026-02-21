@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 # ---------- Unit of Measure ----------
 class UnitOfMeasure(str, Enum):
     """
@@ -72,7 +73,7 @@ class ProductSizeType(str, Enum):
     MEDIUM = 'medium'
     SMALL_PARTS = 'small parts'
     # Additional
-    BULKY = 'bulky'    # Need more space but not too heavy
+    BULKY = 'bulky'  # Need more space but not too heavy
     LIGHT = 'light'
     STANDARD = 'standard'
 
@@ -108,7 +109,7 @@ class ProductTrackingType(str, Enum):
     WEIGHT_BASED = 'weight_based'
     KIT = 'kit'
     # Additional
-    SERIALIZED = 'serialized'    # track by serialized
+    SERIALIZED = 'serialized'  # track by serialized
     LOT_TRACKED = 'lot_tracked'  # track by lot
     EXPIRY_TRACKED = 'expiry_tracked'  # track expiry date
 
@@ -145,15 +146,15 @@ class HazardClass(str, Enum):
 
     __slots__ = ()
 
-    CLASS_1 = '1'   # Explosive
-    CLASS_2 = '2'   # Gas
-    CLASS_3 = '3'   # Flammable liquid
-    CLASS_4 = '4'   # Flammable solid
-    CLASS_5 = '5'   # Oxidizing
-    CLASS_6 = '6'   # Toxic
-    CLASS_7 = '7'   # Radioactive
-    CLASS_8 = '8'   # Corrosive
-    CLASS_9 = '9'   # Miscellaneous
+    CLASS_1 = '1'  # Explosive
+    CLASS_2 = '2'  # Gas
+    CLASS_3 = '3'  # Flammable liquid
+    CLASS_4 = '4'  # Flammable solid
+    CLASS_5 = '5'  # Oxidizing
+    CLASS_6 = '6'  # Toxic
+    CLASS_7 = '7'  # Radioactive
+    CLASS_8 = '8'  # Corrosive
+    CLASS_9 = '9'  # Miscellaneous
 
 
 # ---------- Temperature Regime ----------
@@ -165,13 +166,13 @@ class TemperatureRegime(str, Enum):
 
     __slots__ = ()
 
-    FROZEN = 'frozen'               # -18°C and below
-    DEEP_FROZEN = 'deep_frozen'      # -30°C and below
-    CHILLED = 'chilled'              # 0°C to +5°C
-    COOL = 'cool'                    # +10°C to +15°C
-    AMBIENT = 'ambient'              # room temperature
-    WARM = 'warm'                    # +20°C to +25°C
-    CONTROLLED = 'controlled'        # specific range defined separately
+    FROZEN = 'frozen'  # -18°C and below
+    DEEP_FROZEN = 'deep_frozen'  # -30°C and below
+    CHILLED = 'chilled'  # 0°C to +5°C
+    COOL = 'cool'  # +10°C to +15°C
+    AMBIENT = 'ambient'  # room temperature
+    WARM = 'warm'  # +20°C to +25°C
+    CONTROLLED = 'controlled'  # specific range defined separately
 
 
 # ---------- ABC Classification (for inventory optimization) ----------
@@ -183,10 +184,10 @@ class ABCCategory(str, Enum):
 
     __slots__ = ()
 
-    A = 'A'   # high value, fast moving
-    B = 'B'   # medium value/medium moving
-    C = 'C'   # low value, slow moving
-    D = 'D'   # obsolete, very slow
+    A = 'A'  # high value, fast moving
+    B = 'B'  # medium value/medium moving
+    C = 'C'  # low value, slow moving
+    D = 'D'  # obsolete, very slow
 
 
 # ---------- Handling Flags (boolean-like, but enum for special attributes) ----------
@@ -197,6 +198,7 @@ class HandlingAttribute(str, Enum):
     This class identificates
     Special handling attributes that can be combined
     """
+
     __slots__ = ()
 
     FRAGILE = 'fragile'
@@ -225,12 +227,12 @@ class PackagingType(str, Enum):
     CRATE = 'crate'
     DRUM = 'drum'
     PALLET = 'pallet'
-    IBC = 'ibc'               # intermediate bulk container
+    IBC = 'ibc'  # intermediate bulk container
     TOTE = 'tote'
     CYLINDER = 'cylinder'
     CARDBOARD = 'cardboard'
     SHRINK_WRAP = 'shrink_wrap'
-    NONE = 'none'             # unpackaged / loose
+    NONE = 'none'  # unpackaged / loose
 
 
 # ---------- Product Status (Lifecycle) ----------
