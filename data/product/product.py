@@ -1,7 +1,9 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from uuid import UUID, uuid4
 from datetime import datetime, date
-from typing import Optional, List, Annotated
+from typing import Optional, Annotated
+from .constants import NAME_VALID, SKU_VALID, POSITIVE_F, DES_VALID, HEAVY_MIN_KG, OVERSIZED_MIN_CM, LIGH_MAX_KG, SMALL_PARTS_MAX_CM
+from .compositions import Dimensions
 from .product_enum import (
     UnitOfMeasure,
     ProductPhysicalState,
@@ -18,18 +20,7 @@ from .product_enum import (
     ProductStatus,
 )
 
-# Min Value Constants for sized type
-HEAVY_MIN_KG = 50.0    # min weight for heavy size type
-LIGH_MAX_KG = 10.0     # max weight for light size type
-OVERSIZED_MIN_CM = 200.0   # min size for oversized size type
-SMALL_PARTS_MAX_CM = 30.0   # max size for small parts size type
 
-
-# Validation Constants
-SKU_VALID = Annotated[str, Field(pattern=r'^[A-Z0-9]{3,20}$', min_length=1, max_length=50, description='Unique SKU (Stock Keeping Unit)')]
-POSITIVE_F = Annotated[float, Field(ge=0)]
-NAME_VALID = Annotated[str, Field(min_length=1, max_length=50, json_schema_extra={'strip_whitespace': True})]
-DES_VALID = Annotated[Optional[str], Field(default=None, max_length=300)]
 # -------- Base Class Of Product --------
 class BaseProduct(BaseModel):
     """Main class that contains all """
@@ -84,12 +75,10 @@ class BaseProduct(BaseModel):
         None, description='Type of packaging used'
     )
 
-    # -------- Volume and Weights (optional) --------
-    weight_kg: Annotated[Optional[POSITIVE_F], Field(description='Weight in kg')]
-    width_cm: Annotated[Optional[POSITIVE_F], Field(description='Width in cm')]
-    height_cm: Annotated[Optional[POSITIVE_F], Field(description='Height in cm')]
-    depth_cm: Annotated[Optional[POSITIVE_F], Field(description='Depth in cm')]
-    volume_m3: Annotated[Optional[POSITIVE_F], Field(description='Volume in cubic meters')]
+    # All compostions with default value
+    # --------  Dimensions --------
+    dimensions: Dimensions = Field(default_factory=lambda: Dimensions())
+
 
     # -------- Special Flags for Handling (bool) --------
     # I used bool instead of HandlingAttribute cause it more better
@@ -129,19 +118,6 @@ class BaseProduct(BaseModel):
             ProductStorageCondition.TEMPERATURE_CONTROLLED
         ) and self.temperature_regime is None:
             raise ValueError('temperature_regime is required for Temperature-controlled or Perishable products')
-        return self
-
-    @model_validator(mode='after')
-    def validate_dims_and_vol(self) -> 'BaseProduct':
-        """If product have all three dimensions and volume in not defined, calculates it auto"""
-        if (self.volume_m3 is None and
-            self.height_cm is not None and
-            self.width_cm is not None and 
-            self.depth_cm is not None):
-            # Volume in cm: (1 m^3 = 1 000 000 m^3)
-            computed_volume = (self.width_cm * self.height_cm * self.depth_cm) / 1_000_000
-            # Setting volume value
-            object.__setattr__(self, 'volume_m3', computed_volume)
         return self
     
     @model_validator(mode='after')
@@ -224,44 +200,45 @@ class BaseProduct(BaseModel):
     @model_validator(mode='after')
     def validate_size_type(self) -> 'BaseProduct':
         """Validation for size type"""
+        dims = self.dimensions
         # Heavy
         if self.size_type == ProductSizeType.HEAVY:
             # Checking weight noen or not
-            if self.weight_kg is None:
+            if dims.weight_kg is None:
                 raise ValueError('For size_type Heavy products required weight_kg field')
             # Checking limit
-            if self.weight_kg <= HEAVY_MIN_KG:
+            if dims.weight_kg <= HEAVY_MIN_KG:
                 raise ValueError(f'For size_type Heavy products min required weitgh is {HEAVY_MIN_KG} kg')
             
         # Over-sized
         elif self.size_type == ProductSizeType.OVERSIZED:
             # Checkin contains dimension or not
-            if self.width_cm is None and self.height_cm is None and self.depth_cm is None:
+            if dims.width_cm is None and dims.height_cm is None and dims.depth_cm is None:
                 raise ValueError('For size_type Over-sized products min required 1 of 3 dimension(weight/height/depth)')
             # chekcing min cm of dimensions
-            if not (self.width_cm and self.width_cm > OVERSIZED_MIN_CM or
-                    self.height_cm and self.height_cm > OVERSIZED_MIN_CM or
-                    self.depth_cm and self.depth_cm > OVERSIZED_MIN_CM):
+            if not (dims.width_cm and dims.width_cm > OVERSIZED_MIN_CM or
+                    dims.height_cm and dims.height_cm > OVERSIZED_MIN_CM or
+                    dims.depth_cm and dims.depth_cm > OVERSIZED_MIN_CM):
                 raise ValueError(f'For size_type Over-sized products min required size is {OVERSIZED_MIN_CM} cm')
         
         # Light
         elif self.size_type == ProductSizeType.LIGHT:
             # Checking weight is none or not
-            if self.weight_kg is None:
+            if dims.weight_kg is None:
                 raise ValueError('For sized_type Light products required weight_kg field')
             # Checking max weight for light products
-            if self.weight_kg > LIGH_MAX_KG:
+            if dims.weight_kg > LIGH_MAX_KG:
                 raise ValueError(f'For size_type Light products max required weight is {LIGH_MAX_KG} kg')
             
         # Small-parts
         elif self.size_type == ProductSizeType.SMALL_PARTS:
             # Checkin contains dimension or not
-            if self.width_cm is None and self.height_cm is None and self.depth_cm is None:
+            if dims.width_cm is None and dims.height_cm is None and dims.depth_cm is None:
                 raise ValueError('For size_type Small-parts products min required 1 of 3 dimension(weight/height/depth)')
             # chekcing min cm of dimensions
-            if not (self.width_cm and self.width_cm < SMALL_PARTS_MAX_CM or
-                    self.height_cm and self.height_cm < SMALL_PARTS_MAX_CM or
-                    self.depth_cm and self.depth_cm < SMALL_PARTS_MAX_CM):
+            if not (dims.width_cm and dims.width_cm < SMALL_PARTS_MAX_CM or
+                    dims.height_cm and dims.height_cm < SMALL_PARTS_MAX_CM or
+                    dims.depth_cm and dims.depth_cm < SMALL_PARTS_MAX_CM):
                 raise ValueError(f'For size_type Small-parts products max required size is {SMALL_PARTS_MAX_CM} cm')
 
         # For other size types if we need we add conditions for them
