@@ -9,7 +9,7 @@ from .constants import (
     DES_VALID,
     HEAVY_MIN_KG,
     OVERSIZED_MIN_CM,
-    LIGH_MAX_KG,
+    LIGHT_MAX_KG,
     SMALL_PARTS_MAX_CM,
 )
 from .compositions import Dimensions
@@ -82,7 +82,7 @@ class BaseProduct(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.now, description='Las update timestamp')
 
     # ------ For products that need their production and expiry date --------
-    productoin_date: Optional[date] = Field(None, description='Date of product production')
+    production_date: Optional[date] = Field(None, description='Date of product production')
     expiry_date: Optional[date] = Field(None, description='Date of product expiry')
 
     # -------- Validators ---------
@@ -113,11 +113,11 @@ class BaseProduct(BaseModel):
     def validate_perishable(self) -> 'BaseProduct':
         """Validation for Product type Perishable"""
         if self.storage_condition == ProductStorageCondition.PERISHABLE:
-            if self.productoin_date is None:
+            if self.production_date is None:
                 raise ValueError('production_date is required for Perishable products')
             if self.expiry_date is None:
                 raise ValueError('expiry_date is required for Perishable products')
-            if self.expiry_date <= self.productoin_date:
+            if self.expiry_date <= self.production_date:
                 raise ValueError('expiry_date must be later the production_date')
             if self.expiry_date < date.today():
                 raise ValueError('Product expiry_date is out of date')
@@ -128,8 +128,8 @@ class BaseProduct(BaseModel):
     @model_validator(mode='after')
     def validate_date_consistensy(self) -> 'BaseProduct':
         """Validation for dates"""
-        if self.expiry_date and self.productoin_date:
-            if self.expiry_date <= self.productoin_date:
+        if self.expiry_date and self.production_date:
+            if self.expiry_date <= self.production_date:
                 raise ValueError('expiry_date must be later than production_date')
             if self.expiry_date < date.today():
                 raise ValueError('Product expiry_date is out of date')
@@ -198,7 +198,7 @@ class BaseProduct(BaseModel):
             if dims.weight_kg is None:
                 raise ValueError('For size_type Heavy products required weight_kg field')
             # Checking limit
-            if dims.weight_kg <= HEAVY_MIN_KG:
+            if dims.weight_kg < HEAVY_MIN_KG:
                 raise ValueError(f'For size_type Heavy products min required weitgh is {HEAVY_MIN_KG} kg')
 
         # Over-sized
@@ -223,8 +223,8 @@ class BaseProduct(BaseModel):
             if dims.weight_kg is None:
                 raise ValueError('For sized_type Light products required weight_kg field')
             # Checking max weight for light products
-            if dims.weight_kg > LIGH_MAX_KG:
-                raise ValueError(f'For size_type Light products max required weight is {LIGH_MAX_KG} kg')
+            if dims.weight_kg > LIGHT_MAX_KG:
+                raise ValueError(f'For size_type Light products max required weight is {LIGHT_MAX_KG} kg')
 
         # Small-parts
         elif self.size_type == ProductSizeType.SMALL_PARTS:

@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 # Min Value Constants for sized type
 HEAVY_MIN_KG = 50.0  # min weight for heavy size type
-LIGH_MAX_KG = 10.0  # max weight for light size type
+LIGHT_MAX_KG = 10.0  # max weight for light size type
 OVERSIZED_MIN_CM = 200.0  # min size for oversized size type
 SMALL_PARTS_MAX_CM = 30.0  # max size for small parts size type
 
