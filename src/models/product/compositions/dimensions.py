@@ -12,11 +12,10 @@ class Dimensions(BaseModel):
     # Pydantic model Configuration
     model_config = ConfigDict(
         slots=True,
-        use_enum_values=True,  # Gives enum.value instaed of enum.key
         validate_assignment=True,  # validates in setting value
     )  # type: ignore
 
-    # -------- Volume and Weights (optional) --------
+    # Volume and Weights (optional)
     weight_kg: Annotated[Optional[POSITIVE_F], Field(description='Weight in kg')] = None
     width_cm: Annotated[Optional[POSITIVE_F], Field(description='Width in cm')] = None
     height_cm: Annotated[Optional[POSITIVE_F], Field(description='Height in cm')] = None
