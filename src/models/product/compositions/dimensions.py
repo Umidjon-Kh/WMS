@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from typing import Optional
+from typing import Optional, Annotated
 from ..constants import POSITIVE_F
 
 
@@ -17,11 +17,11 @@ class Dimensions(BaseModel):
     )  # type: ignore
 
     # -------- Volume and Weights (optional) --------
-    weight_kg: Optional[POSITIVE_F] = Field(None, description='Weight in kg')
-    width_cm: Optional[POSITIVE_F] = Field(None, description='Width in cm')
-    height_cm: Optional[POSITIVE_F] = Field(None, description='Height in cm')
-    depth_cm: Optional[POSITIVE_F] = Field(None, description='Depth in cm')
-    volume_m3: Optional[POSITIVE_F] = Field(None, description='Volume in cubic meters')
+    weight_kg: Annotated[Optional[POSITIVE_F], Field(description='Weight in kg')] = None
+    width_cm: Annotated[Optional[POSITIVE_F], Field(description='Width in cm')] = None
+    height_cm: Annotated[Optional[POSITIVE_F], Field(description='Height in cm')] = None
+    depth_cm: Annotated[Optional[POSITIVE_F], Field(description='Depth in cm')] = None
+    volume_m3: Annotated[Optional[POSITIVE_F], Field(description='Volume in cubic meters')] = None
 
     @model_validator(mode='after')
     def calculato_vol(self) -> 'Dimensions':

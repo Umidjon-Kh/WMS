@@ -1,7 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 # from uuid import UUID, uuid4
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, Annotated
 from .constants import (
     NAME_VALID,
     SKU_VALID,
@@ -51,14 +52,18 @@ class BaseProduct(BaseModel):
     status: ProductStatus = Field(..., description='Current lifecycle status')
 
     # -------- Optional fields default None ------
-    description: DES_VALID
-    storage_condition: Optional[ProductStorageCondition] = Field(None, description='General storage requirements')
-    size_type: Optional[ProductSizeType] = Field(None, description='Size/weight category')
-    moving_type: Optional[ProductMovingType] = Field(None, description='Turnover characteristic')
-    hazard_class: Optional[HazardClass] = Field(None, description='Dangerous goods class (if Hazardous)')
-    temperature_regime: Optional[TemperatureRegime] = Field(None, description='Required temperature regime')
-    abc_category: Optional[ABCCategory] = Field(None, description='ABC classification for inventory optimization')
-    packaging_type: Optional[PackagingType] = Field(None, description='Type of packaging used')
+    description: Optional[DES_VALID] = None
+    storage_condition: Annotated[
+        Optional[ProductStorageCondition], Field(description='General storage requirements')
+    ] = None
+    size_type: Annotated[Optional[ProductSizeType], Field(description='Size/weight category')] = None
+    moving_type: Annotated[Optional[ProductMovingType], Field(description='Turnover characteristic')] = None
+    hazard_class: Annotated[Optional[HazardClass], Field(description='Dangerous goods class (if Hazardous)')] = None
+    temperature_regime: Annotated[Optional[TemperatureRegime], Field(description='Required temperature regime')] = None
+    abc_category: Annotated[
+        Optional[ABCCategory], Field(description='ABC classification for inventory optimization')
+    ] = None
+    packaging_type: Annotated[Optional[PackagingType], Field(description='Type of packaging used')] = None
 
     # All compostions with default value
     # --------  Dimensions --------
@@ -68,22 +73,22 @@ class BaseProduct(BaseModel):
     # I used bool instead of HandlingAttribute cause it more better
     # In my opinian but if you want to use Handling Attributes just
     # Replace bool wth Optional[]
-    is_fragile: bool = Field(False, description='Fragile item')
-    is_stackable: bool = Field(True, description='Can be stacked')
-    is_odor_sensitive: bool = Field(False, description='Absorbs odors')
-    requires_ventilation: bool = Field(False, description='Need ventilation')
-    requires_quarantine: bool = Field(False, description='Requires quarantine after return')
-    is_magnetic: bool = Field(False, description='Magnetic properties')
-    is_static_sensitive: bool = Field(False, description='Sensitive to static electricity')
-    irregular_shape: bool = Field(False, description='Irregular shape')
+    is_fragile: Annotated[bool, Field(description='Fragile item')] = False
+    is_stackable: Annotated[bool, Field(description='Can be stacked')] = True
+    is_odor_sensitive: Annotated[bool, Field(description='Absorbs odors')] = False
+    requires_ventilation: Annotated[bool, Field(description='Need ventilation')] = False
+    requires_quarantine: Annotated[bool, Field(description='Requires quarantine after return')] = False
+    is_magnetic: Annotated[bool, Field(description='Magnetic properties')] = False
+    is_static_sensitive: Annotated[bool, Field(description='Sensitive to static electricity')] = False
+    irregular_shape: Annotated[bool, Field(description='Irregular shape')] = False
 
     # ------ Technical fields (auto sets) -------
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Las update timestamp')
 
     # ------ For products that need their production and expiry date --------
-    production_date: Optional[date] = Field(None, description='Date of product production')
-    expiry_date: Optional[date] = Field(None, description='Date of product expiry')
+    production_date: Annotated[Optional[date], Field(description='Date of product production')] = None
+    expiry_date: Annotated[Optional[date], Field(description='Date of product expiry')] = None
 
     # -------- Validators ---------
     @model_validator(mode='after')

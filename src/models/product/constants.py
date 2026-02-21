@@ -14,4 +14,4 @@ SKU_VALID = Annotated[
 ]
 POSITIVE_F = Annotated[float, Field(ge=0)]
 NAME_VALID = Annotated[str, Field(min_length=1, max_length=50, json_schema_extra={'strip_whitespace': True})]
-DES_VALID = Annotated[Optional[str], Field(default=None, max_length=300)]
+DES_VALID = Annotated[Optional[str], Field(max_length=300)]
