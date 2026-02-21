@@ -1,5 +1,3 @@
-from .product import BaseProduct, Dimensions
+from .product import BaseProduct, Dimensions, StorageRequirements, HandlingAttributes, Classification, Traceability
 
-# others later
-
-__all__ = ['BaseProduct', 'Dimensions']
+__all__ = ['BaseProduct', 'Dimensions', 'Traceability', 'Classification', 'HandlingAttributes', 'StorageRequirements']

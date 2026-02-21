@@ -190,29 +190,6 @@ class ABCCategory(str, Enum):
     D = 'D'  # obsolete, very slow
 
 
-# ---------- Handling Flags (boolean-like, but enum for special attributes) ----------
-# We can also define as a Flag enum if needed, but for clarity, separate bool fields are used in model.
-# However, we can keep a separate enum for possible special handling attributes that could be multi-select.
-class HandlingAttribute(str, Enum):
-    """
-    This class identificates
-    Special handling attributes that can be combined
-    """
-
-    __slots__ = ()
-
-    FRAGILE = 'fragile'
-    STACKABLE = 'stackable'
-    ODOR_SENSITIVE = 'odor_sensitive'
-    REQUIRES_VENTILATION = 'requires_ventilation'
-    REQUIRES_QUARANTINE = 'requires_quarantine'
-    MAGNETIC = 'magnetic'
-    STATIC_SENSITIVE = 'static_sensitive'
-    HEAVY = 'heavy'  # if not covered by size type
-    LARGE = 'large'
-    IRREGULAR_SHAPE = 'irregular_shape'
-
-
 # ---------- Packaging Type ----------
 class PackagingType(str, Enum):
     """

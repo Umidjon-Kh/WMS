@@ -18,15 +18,13 @@ class Classification(BaseModel):
 
     size_type: Annotated[
         Optional[ProductSizeType],
-        Field(description='Size/weight category (oversized, heavy, light, small parts, etc.)')
+        Field(description='Size/weight category (oversized, heavy, light, small parts, etc.)'),
     ] = None
 
     moving_type: Annotated[
-        Optional[ProductMovingType],
-        Field(description='Turnover characteristic (fast, normal, slow moving, etc.)')
+        Optional[ProductMovingType], Field(description='Turnover characteristic (fast, normal, slow moving, etc.)')
     ] = None
 
     abc_category: Annotated[
-        Optional[ABCCategory],
-        Field(description='ABC classification for inventory optimization (A, B, C, D)')
+        Optional[ABCCategory], Field(description='ABC classification for inventory optimization (A, B, C, D)')
     ] = None

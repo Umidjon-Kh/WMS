@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 from typing import Optional
+from .compositions import Dimensions, HandlingAttributes, Traceability, StorageRequirements, Classification
 from .constants import (
     NAME_VALID,
     SKU_VALID,
@@ -10,7 +11,6 @@ from .constants import (
     LIGHT_MAX_KG,
     SMALL_PARTS_MAX_CM,
 )
-from .compositions import Dimensions, HandlingAttributes, Traceability, StorageRequirements, Classification
 from .enums import (
     UnitOfMeasure,
     ProductPhysicalState,
@@ -18,7 +18,6 @@ from .enums import (
     ProductSizeType,
     ProductTrackingType,
     ProductRoleType,
-    ABCCategory,
     PackagingType,
     ProductStatus,
 )
@@ -26,7 +25,10 @@ from .enums import (
 
 # -------- Base Class Of Product --------
 class BaseProduct(BaseModel):
-    """Main class that contains all"""
+    """
+    Main core class that contains alls fields, Compostions
+    and Cross Validators that need to work between compositions
+    """
 
     # Pydantic model Configuration
     model_config = ConfigDict(
@@ -42,25 +44,20 @@ class BaseProduct(BaseModel):
     physical_state: ProductPhysicalState = Field(..., description='Physical state of product')
     role_type: ProductRoleType = Field(..., description='Product role in production/logistic chain')
     status: ProductStatus = Field(..., description='Current lifecycle status')
-
-    # -------- Optional fields default None ------
     description: Optional[DES_VALID] = None
 
     # ---------- Compositions -------
-    dimensions: Dimensions = Field(default_factory=lambda: Dimensions())  # Dimensions
-    handling: HandlingAttributes = Field(default_factory=lambda: HandlingAttributes())  # HandlingAttributes
-    traceability: Traceability  # TraceAbility
-    storage_requirements: StorageRequirements = Field(
-        default_factory=lambda: StorageRequirements()
-    )  # StorageRequirements
-    classification: Classification = Field(default_factory=lambda: Classification())  # Classification
+    dimensions: Dimensions = Field(default_factory=lambda: Dimensions())
+    handling: HandlingAttributes = Field(default_factory=lambda: HandlingAttributes())
+    traceability: Traceability
+    storage_requirements: StorageRequirements = Field(default_factory=lambda: StorageRequirements())
+    classification: Classification = Field(default_factory=lambda: Classification())
 
     # ------ Technical fields (auto sets) -------
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Las update timestamp')
 
-    # -------- Validators ---------
-
+    # -------- Cross Validators ---------
     @model_validator(mode='after')
     def validate_perishable(self) -> 'BaseProduct':
         """Validation for Product type Perishable"""

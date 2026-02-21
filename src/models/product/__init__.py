@@ -1,10 +1,4 @@
 from .product import BaseProduct
-from .compositions import Dimensions
+from .compositions import Dimensions, HandlingAttributes, StorageRequirements, Classification, Traceability
 
-# from .compositions import HandlingAttributes, StorageRequirements, ... (когда будут готовы)
-
-__all__ = [
-    'BaseProduct',
-    'Dimensions',
-    # ... Other compositions later
-]
+__all__ = ['BaseProduct', 'Dimensions', 'Traceability', 'Classification', 'HandlingAttributes', 'StorageRequirements']

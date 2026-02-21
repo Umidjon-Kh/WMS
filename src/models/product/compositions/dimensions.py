@@ -5,8 +5,10 @@ from ..constants import POSITIVE_F
 
 class Dimensions(BaseModel):
     """
-    Composition for physical sizes and weight of product.
-    If all three dimensions are not None, volume calculates auto
+    Composition for Product Dimensions its Optional
+    Cause one of the size type objects dont need
+    all fields to be initialized its need to check
+    dimensions or weight required for size type product
     """
 
     # Pydantic model Configuration
@@ -24,7 +26,7 @@ class Dimensions(BaseModel):
 
     @model_validator(mode='after')
     def calculato_vol(self) -> 'Dimensions':
-        """Returns claculated volume size"""
+        """If all three dimensions are not None, volume calculates auto"""
         if self.volume_m3 is None and self.width_cm and self.height_cm and self.depth_cm:
             # Volume in m^3: = (cm * cm * cm) / 1_000_000
             self.volume_m3 = (self.width_cm * self.height_cm * self.depth_cm) / 1_000_000

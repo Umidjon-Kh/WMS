@@ -4,8 +4,8 @@ from typing import Annotated
 
 class HandlingAttributes(BaseModel):
     """
-    Attributes of product that need to info
-    of Specific Flags
+    Attributes of product that need to
+    info about Specific Flags
     """
 
     # Pydantic model Configuration
