@@ -59,23 +59,34 @@ class BaseProduct(BaseModel):
 
     # -------- Cross Validators ---------
     @model_validator(mode='after')
-    def validate_perishable(self) -> 'BaseProduct':
-        """Validation for Product type Perishable"""
-        if self.storage_requirements.storage_condition == ProductStorageCondition.PERISHABLE:
-            if self.traceability.tracking_type != ProductTrackingType.EXPIRY_TRACKED:
-                raise ValueError('Perishable products must have tracking_type = EXPIRY_TRACKED')
+    def validate_stgc_requirements(self) -> 'BaseProduct':
+        """Validating Product Storage Condition types requirements"""
+        # Validating for Perishable and Traceability products requirements
+        if (
+            self.storage_requirements.storage_condition
+            in (ProductStorageCondition.PERISHABLE, ProductStorageCondition.MEDICINE)
+            and self.traceability.tracking_type != ProductTrackingType.EXPIRY_TRACKED
+        ):
+            raise ValueError('Perishable and Medicine products must have tracking_type = EXPIRY_TRACKED')
+
+        # Validation for Electronic product requirements
+        elif (
+            self.storage_requirements.storage_condition == ProductStorageCondition.ELECTRONICS
+            and not self.handling.is_static_sensitive
+        ):
+            raise ValueError('Electronis products must be static sensitive')
         return self
 
     @model_validator(mode='after')
     def check_timesmaps(self) -> 'BaseProduct':
-        """Validate timestamps of product"""
+        """Validating timestamps of product"""
         if self.updated_at < self.created_at:
             raise ValueError('updated_at cant be earlier than creation_at')
         return self
 
     @model_validator(mode='after')
     def validate_units(self) -> 'BaseProduct':
-        """Validation for units"""
+        """Validating unit matchings"""
         # ------- Dict for all units type ---------
         weight_units = {UnitOfMeasure.KILOGRAM, UnitOfMeasure.GRAM}
         piece_units = {UnitOfMeasure.PIECE, UnitOfMeasure.BOX, UnitOfMeasure.PALLET, UnitOfMeasure.SET}
@@ -87,22 +98,29 @@ class BaseProduct(BaseModel):
         # ------- Tracking type unit validation -------
         # Weight based
         if self.traceability.tracking_type == ProductTrackingType.WEIGHT_BASED:
+            # Checking unit
             if self.unit_of_measure not in weight_units:
                 raise ValueError('For tracking type Weight-Based products units must be in kg or gram')
         # Piece
         elif self.traceability.tracking_type == ProductTrackingType.PIECE:
+            # Checking unit
             if self.unit_of_measure not in piece_units:
                 raise ValueError('For tracking type Piece products units must be in pc, box, pallet or set')
         # Kit
         elif self.traceability.tracking_type == ProductTrackingType.KIT:
+            # Checking unit
             if self.unit_of_measure not in (UnitOfMeasure.SET, UnitOfMeasure.PIECE):
                 raise ValueError('For tracking type Kit products units must be in set or pc')
 
         # ---------- Physical state unit validation
         # Liquids
         if self.physical_state == ProductPhysicalState.LIQUID:
+            # Checking unit
             if self.unit_of_measure not in liquid_units:
                 raise ValueError('For products with physical state Liquid units must be in liter or mililiter')
+            # Checking packaging type
+            if self.storage_requirements.packaging_type == PackagingType.BOX:
+                raise ValueError('Liquid products cannot be stored in boxes')
         # Gas
         elif self.physical_state == ProductPhysicalState.GAS:
             # Checking unit
@@ -110,18 +128,22 @@ class BaseProduct(BaseModel):
                 raise ValueError(
                     'For products with physical state Gas units must be in liter, mililiter or cubic meter'
                 )
-            # Addtional chacking packaging type
+            # Checking packaging type for gas
             if self.storage_requirements.packaging_type not in (PackagingType.CYLINDER, PackagingType.DRUM, None):
                 raise ValueError('For products with physical state Gas packaging type must be in cylinder or drum')
+            # Checking handling flags for gas
+            if not self.handling.requires_ventilation:
+                raise ValueError('Gas products should have requires_ventilation')
         # Bulk
         elif self.physical_state == ProductPhysicalState.BULK:
+            # Checking unit
             if self.unit_of_measure not in bulk_units:
                 raise ValueError('For products physical type Bulk units must be in weight or volume')
         return self
 
     @model_validator(mode='after')
     def validate_size_type(self) -> 'BaseProduct':
-        """Validation for size type"""
+        """Validating size type requirements"""
         dims = self.dimensions
         # Heavy
         if self.classification.size_type == ProductSizeType.HEAVY:
@@ -177,4 +199,22 @@ class BaseProduct(BaseModel):
 
         # For other size types if we need we add conditions for them
         # later not know caouse its not required
+        return self
+
+    @model_validator(mode='after')
+    def validate_handlings(self) -> 'BaseProduct':
+        """Validating handling matchings"""
+        if not self.handling.is_stackable and self.classification.size_type in (
+            ProductSizeType.HEAVY,
+            ProductSizeType.OVERSIZED,
+        ):
+            raise ValueError('Heavy or oversized products cannot be stackable')
+        return self
+
+    @model_validator(mode='after')
+    def validate_role(self) -> 'BaseProduct':
+        """Validating role type matchings"""
+        # For returned products must require quarantine
+        if self.role_type == ProductRoleType.RETURNS and not self.handling.requires_quarantine:
+            raise ValueError('Returned products must require quarantine')
         return self
