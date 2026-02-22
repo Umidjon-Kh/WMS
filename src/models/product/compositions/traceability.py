@@ -32,13 +32,21 @@ class Traceability(BaseModel):
             raise ValueError('expiry_date cannot be in the past')
         return value
 
-    @model_validator(mode='after')
-    def check_dates_consistency(self) -> 'Traceability':
-        """If both dates provided, expiry must be after production."""
-        if self.production_date and self.expiry_date:
-            if self.expiry_date <= self.production_date:
-                raise ValueError('expiry_date must be later than production_date')
-        return self
+    @field_validator('production_date')
+    @classmethod
+    def check_production_not_future(cls, value: Optional[date]) -> Optional[date]:
+        """Production date cannot be in the future (if provided)."""
+        if value is not None and value > date.today():
+            raise ValueError('production_date cannot be in the future')
+        return value
+
+    # @model_validator(mode='after')
+    # def check_dates_consistency(self) -> 'Traceability':
+    #     """If both dates provided, expiry must be after production."""
+    #     if self.production_date and self.expiry_date:
+    #         if self.expiry_date <= self.production_date:
+    #             raise ValueError('expiry_date must be later than production_date')
+    #     return self
 
     @model_validator(mode='after')
     def check_expiry_tracking(self) -> 'Traceability':
