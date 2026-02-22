@@ -24,6 +24,7 @@ class Dimensions(BaseModel):
     depth_cm: Annotated[Optional[POSITIVE_F], Field(description='Depth in cm')] = None
     volume_m3: Annotated[Optional[POSITIVE_F], Field(description='Volume in cubic meters')] = None
 
+    # ----------- Validators --------
     @model_validator(mode='after')
     def calculato_vol(self) -> 'Dimensions':
         """If all three dimensions are not None, volume calculates auto"""

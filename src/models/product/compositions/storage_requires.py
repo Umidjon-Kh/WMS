@@ -24,6 +24,7 @@ class StorageRequirements(BaseModel):
     temperature_regime: Annotated[Optional[TemperatureRegime], Field(description='Required temperature regime')] = None
     packaging_type: Annotated[Optional[PackagingType], Field(description='Type of packaging used')] = None
 
+    # ----------- Validators --------
     @model_validator(mode='after')
     def check_hazard_consistency(self) -> 'StorageRequirements':
         """If storage_condition is HAZARDOUS, hazard_class must be provided, and vice versa."""
@@ -36,9 +37,22 @@ class StorageRequirements(BaseModel):
     @model_validator(mode='after')
     def check_temperature_required(self) -> 'StorageRequirements':
         """If storage_condition requires temperature control, temperature_regime must be provided."""
-        if self.storage_condition in (
-            ProductStorageCondition.PERISHABLE,
-            ProductStorageCondition.TEMPERATURE_CONTROLLED
-        ) and self.temperature_regime is None:
+        if (
+            self.storage_condition
+            in (
+                ProductStorageCondition.PERISHABLE,
+                ProductStorageCondition.TEMPERATURE_CONTROLLED,
+                ProductStorageCondition.MEDICINE,
+            )
+            and self.temperature_regime is None
+        ):
             raise ValueError('temperature_regime required for perishable or temperature-controlled products')
+        return self
+
+    @model_validator(mode='after')
+    def recommendations_validator(self) -> 'StorageRequirements':
+        """Recommendation for StorageRequirements"""
+        # For Electronics products recommend tempertaure_regime
+        if self.storage_condition == ProductStorageCondition.ELECTRONICS and not self.temperature_regime:
+            print('Recommendation: For product type Electronics recommendts temperature_regime')
         return self

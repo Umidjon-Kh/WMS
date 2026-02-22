@@ -23,6 +23,7 @@ class Traceability(BaseModel):
     production_date: Annotated[Optional[date], Field(description='Date of product production')] = None
     expiry_date: Annotated[Optional[date], Field(description='Date of product expiry')] = None
 
+    # ----------- Validators --------
     @field_validator('expiry_date')
     @classmethod
     def check_expiry_not_past(cls, value: Optional[date]) -> Optional[date]:
