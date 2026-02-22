@@ -99,8 +99,10 @@ class BaseProduct(BaseModel):
         # Weight based
         if self.traceability.tracking_type == ProductTrackingType.WEIGHT_BASED:
             # Checking unit
-            if self.unit_of_measure not in weight_units:
-                raise ValueError('For tracking type Weight-Based products units must be in kg or gram')
+            if self.unit_of_measure not in weight_units | liquid_units | gas_units:
+                raise ValueError(
+                    'For tracking type Weight-Based products units must be in kg, gram, liter, mililiter, cubic_meter'
+                )
         # Piece
         elif self.traceability.tracking_type == ProductTrackingType.PIECE:
             # Checking unit
@@ -204,7 +206,7 @@ class BaseProduct(BaseModel):
     @model_validator(mode='after')
     def validate_handlings(self) -> 'BaseProduct':
         """Validating handling matchings"""
-        if not self.handling.is_stackable and self.classification.size_type in (
+        if self.handling.is_stackable and self.classification.size_type in (
             ProductSizeType.HEAVY,
             ProductSizeType.OVERSIZED,
         ):
