@@ -1,3 +1,36 @@
 from .product import BaseProduct, Dimensions, StorageRequirements, HandlingAttributes, Classification, Traceability
+from .product.enums import (
+    ProductPhysicalState,
+    ProductMovingType,
+    ProductRoleType,
+    ProductSizeType,
+    ProductStatus,
+    ProductStorageCondition,
+    ProductTrackingType,
+    PackagingType,
+    HazardClass,
+    ABCCategory,
+    UnitOfMeasure,
+    TemperatureRegime,
+)
 
-__all__ = ['BaseProduct', 'Dimensions', 'Traceability', 'Classification', 'HandlingAttributes', 'StorageRequirements']
+__all__ = [
+    'BaseProduct',
+    'Dimensions',
+    'Traceability',
+    'Classification',
+    'HandlingAttributes',
+    'StorageRequirements',
+    'ProductPhysicalState',
+    'ProductMovingType',
+    'ProductRoleType',
+    'ProductSizeType',
+    'ProductStatus',
+    'ProductStorageCondition',
+    'ProductTrackingType',
+    'PackagingType',
+    'HazardClass',
+    'ABCCategory',
+    'UnitOfMeasure',
+    'TemperatureRegime',
+]
