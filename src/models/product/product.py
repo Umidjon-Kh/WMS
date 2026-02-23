@@ -84,7 +84,7 @@ class BaseProduct(BaseModel):
     # ------- Time-Stamps ------
     @model_validator(mode='after')
     def validate_timestamps(self) -> 'BaseProduct':
-        """Validating timestamps of product"""
+        """Validating time-stamps of product"""
         if self.updated_at < self.created_at:
             raise ValueError('updated_at cant be earlier than creation_at')
         return self
