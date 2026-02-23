@@ -1,9 +1,9 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
+from uuid import UUID
 from typing import Optional, Annotated
 from .compositions import Dimensions, HandlingAttributes, Traceability, StorageRequirements, Classification
 from .constants import (
-    ID_VALID,
     NAME_VALID,
     SKU_VALID,
     DES_VALID,
@@ -41,7 +41,7 @@ class BaseProduct(BaseModel):
     # ----- main fields -----
     sku: SKU_VALID
     name: NAME_VALID
-    category_id: Annotated[Optional[ID_VALID], Field(description='Category_id')] = None
+    category_id: Annotated[Optional[UUID], Field(frozen=True, description='Category id')]
     unit_of_measure: UnitOfMeasure = Field(..., description='Base unit of measure (how product is counted)')
     physical_state: ProductPhysicalState = Field(..., description='Physical state of product')
     role_type: ProductRoleType = Field(..., description='Product role in production/logistic chain')
