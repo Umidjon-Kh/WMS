@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from warnings import warn
 from typing import Optional, Annotated
 from uuid import UUID
 from ..enums import PutawayStrategy, ReplenishmentMethod
@@ -37,3 +38,17 @@ class CtgStorageSettings(BaseModel):
     replenishment_method: Annotated[
         Optional[ReplenishmentMethod], Field(description='How to replenish the picking zone (pallet, case, each, bulk)')
     ] = None
+
+    # --------- Validators -----------
+    @model_validator(mode='after')
+    def validate_zones_consistency(self) -> 'CtgStorageSettings':
+        """Validating zones consistensy"""
+        if self.default_picking_zone_id and not self.default_storage_zone_id:
+            warn('Picking zone is set but storage zone is not. This might cause issues during putaway.', UserWarning)
+        if self.putaway_strategy and not self.default_storage_zone_id:
+            warn(
+                f'Putaway strategy "{self.putaway_strategy.value}" is set'
+                ' but no storage zone defined. Storage zone is recommended.',
+                UserWarning,
+            )
+        return self
