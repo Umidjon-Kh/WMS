@@ -40,7 +40,7 @@ class CtgDefaults(BaseModel):
     )
     default_packaging_type: Annotated[Optional[PackagingType], Field(description='Packaging type by default')] = None
     default_shelf_life_days: Annotated[Optional[POSITIVE_INT], Field(description='Default expiry date')] = None
-    default_unit_of_measure: Annotated[Optional[UnitOfMeasure], Field(description='Deafault unit of measure')] = None
+    default_unit_of_measure: Annotated[Optional[UnitOfMeasure], Field(description='Default unit of measure')] = None
 
     # ----------- Validators --------
     # ------- Hazard class Consistensy ------
@@ -54,23 +54,6 @@ class CtgDefaults(BaseModel):
             and self.default_storage_condition != ProductStorageCondition.HAZARDOUS
         ):
             raise ValueError('hazard_class only allowed for hazardous products')
-        return self
-
-    # --------- Tempertaure Regime required Conditions -------
-    @model_validator(mode='after')
-    def check_temperature_required(self) -> 'CtgDefaults':
-        """If storage_condition requires temperature control, temperature_regime must be provided."""
-        if self.default_storage_condition and self.default_temperature_regime:
-            if (
-                self.default_storage_condition
-                in (
-                    ProductStorageCondition.PERISHABLE,
-                    ProductStorageCondition.TEMPERATURE_CONTROLLED,
-                    ProductStorageCondition.MEDICINE,
-                )
-                and self.default_temperature_regime is None
-            ):
-                raise ValueError('temperature_regime required for perishable or temperature-controlled products')
         return self
 
     # --------- Recommendations ----------
