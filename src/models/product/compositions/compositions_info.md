@@ -1,6 +1,10 @@
 # Compositions Documentation
 
-## 1. Dimensions
+This document describes all composition classes used inside `BaseProduct`. Each composition groups related attributes and contains its own validators.
+
+---
+
+## 1. `Dimensions`
 
 File: `dimensions.py`
 
@@ -16,12 +20,13 @@ File: `dimensions.py`
 | `depth_cm` | `Optional[POSITIVE_F]` | Depth in centimeters |
 | `volume_m3` | `Optional[POSITIVE_F]` | Volume in cubic meters |
 
-**Validations:**
-- If all three dimensions (`width_cm`, `height_cm`, `depth_cm`) are provided and `volume_m3` is not, the volume is automatically calculated.
+**Validators:**
+
+- `calculato_vol` (`@model_validator`): If all three dimensions (`width_cm`, `height_cm`, `depth_cm`) are provided and `volume_m3` is not set, the volume is automatically calculated as `(width*height*depth) / 1_000_000`.
 
 ---
 
-## 2. HandlingAttributes
+## 2. `HandlingAttributes`
 
 File: `handling.py`
 
@@ -40,13 +45,15 @@ File: `handling.py`
 | `is_static_sensitive` | `bool` | `False` | Sensitive to static electricity |
 | `irregular_shape` | `bool` | `False` | Irregular shape |
 
-**Validations:**
-- If `is_fragile` is `True`, then `is_stackable` must be `False`.
-- If `is_odor_sensitive` is `True` and `requires_ventilation` is `False`, a warning is printed.
+**Validators:**
+
+- `is_fragile_sctackable` (`@model_validator`): If `is_fragile` is `True`, then `is_stackable` must be `False`.  
+  *Raises* `ValueError` if both are `True`.
+- `recommendations_validator` (`@model_validator`): If `is_odor_sensitive` is `True` and `requires_ventilation` is `False`, prints a warning (non‑blocking).
 
 ---
 
-## 3. Traceability
+## 3. `Traceability`
 
 File: `traceability.py`
 
@@ -60,14 +67,15 @@ File: `traceability.py`
 | `production_date` | `Optional[date]` | Date of production |
 | `expiry_date` | `Optional[date]` | Date of expiry |
 
-**Validations:**
-- `expiry_date` (if provided) cannot be in the past.
-- If both dates are provided, `expiry_date` must be later than `production_date`.
-- If `tracking_type = EXPIRY_TRACKED`, both `production_date` and `expiry_date` are required.
+**Validators:**
+
+- `check_expiry_not_past` (`@field_validator('expiry_date')`): Raises `ValueError` if `expiry_date` is in the past (and not `None`).
+- `check_production_not_future` (`@field_validator('production_date')`): Raises `ValueError` if `production_date` is in the future (and not `None`).
+- `check_expiry_tracking` (`@model_validator`): If `tracking_type = EXPIRY_TRACKED`, both `production_date` and `expiry_date` must be provided. Otherwise raises `ValueError`.
 
 ---
 
-## 4. StorageRequirements
+## 4. `StorageRequirements`
 
 File: `storage_requires.py`
 
@@ -82,14 +90,21 @@ File: `storage_requires.py`
 | `temperature_regime` | `Optional[TemperatureRegime]` | Required temperature regime |
 | `packaging_type` | `Optional[PackagingType]` | Type of packaging used |
 
-**Validations:**
-- If `storage_condition = HAZARDOUS`, then `hazard_class` is required; conversely, if `hazard_class` is provided, `storage_condition` must be `HAZARDOUS`.
-- If `storage_condition` is `PERISHABLE`, `TEMPERATURE_CONTROLLED` or `MEDICINE`, then `temperature_regime` is required.
-- If `storage_condition = ELECTRONICS` and `temperature_regime` is missing, a warning is printed.
+**Validators:**
+
+- `check_hazard_consistency` (`@model_validator`):  
+  - If `storage_condition = HAZARDOUS`, then `hazard_class` must be provided.  
+  - If `hazard_class` is provided, `storage_condition` must be `HAZARDOUS`.  
+  *Raises* `ValueError` on mismatch.
+- `check_temperature_required` (`@model_validator`):  
+  If `storage_condition` is `PERISHABLE`, `TEMPERATURE_CONTROLLED` or `MEDICINE`, then `temperature_regime` is required.  
+  *Raises* `ValueError` if missing.
+- `recommendations_validator` (`@model_validator`):  
+  If `storage_condition = ELECTRONICS` and `temperature_regime` is missing, prints a warning (non‑blocking).
 
 ---
 
-## 5. Classification
+## 5. `Classification`
 
 File: `classification.py`
 
@@ -103,6 +118,11 @@ File: `classification.py`
 | `moving_type` | `Optional[ProductMovingType]` | Turnover characteristic |
 | `abc_category` | `Optional[ABCCategory]` | ABC classification for inventory optimization |
 
-**Validations:**
-- If `size_type` is `HEAVY` or `OVERSIZED`, then `moving_type` cannot be `FAST_MOVING`.
-- If `abc_category = A`, then `moving_type` must be either `FAST_MOVING` or `NORMAL_MOVING`.
+**Validators:**
+
+- `validate_size_moving` (`@model_validator`):  
+  If `size_type` is `HEAVY` or `OVERSIZED`, then `moving_type` cannot be `FAST_MOVING`.  
+  *Raises* `ValueError` otherwise.
+- `validate_category` (`@model_validator`):  
+  If `abc_category = A`, then `moving_type` must be either `FAST_MOVING` or `NORMAL_MOVING`.  
+  *Raises* `ValueError` otherwise.

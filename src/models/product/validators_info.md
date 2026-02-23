@@ -1,85 +1,117 @@
-# Документация валидаторов
+# Validators Documentation
 
-В этом документе перечислены все валидаторы в модели `BaseProduct` и её композициях. Валидаторы обеспечивают согласованность данных и соблюдение бизнес-правил.
+This document lists all validators in the `BaseProduct` model and its compositions. Validators ensure data consistency and enforce business rules.
 
-## 1. Валидаторы композиций
+## 1. Composition Validators
 
 ### 1.1. `Dimensions.calculato_vol`
-- **Тип:** `@model_validator`
-- **Назначение:** Автоматически вычисляет `volume_m3` из `width_cm`, `height_cm`, `depth_cm`, если все три заданы, а `volume_m3` не указан.
+- **Type:** `@model_validator`
+- **Purpose:** Automatically calculates `volume_m3` from `width_cm`, `height_cm`, `depth_cm` if all three are provided and `volume_m3` is not set.
 
 ### 1.2. `HandlingAttributes.is_fragile_sctackable`
-- **Тип:** `@model_validator`
-- **Назначение:** Гарантирует, что хрупкий товар (`is_fragile = True`) не может быть штабелируемым (`is_stackable = False`).
+- **Type:** `@model_validator`
+- **Purpose:** Ensures that if a product is fragile (`is_fragile = True`), it cannot be stackable (`is_stackable = False`). Raises `ValueError` if both are `True`.
 
 ### 1.3. `HandlingAttributes.recommendations_validator`
-- **Тип:** `@model_validator`
-- **Назначение:** Выводит предупреждение, если товар, чувствительный к запахам, не требует вентиляции (неблокирующее).
+- **Type:** `@model_validator`
+- **Purpose:** Prints a warning (non‑blocking) if an odor‑sensitive product (`is_odor_sensitive = True`) does not have ventilation required (`requires_ventilation = False`).
 
 ### 1.4. `Traceability.check_expiry_not_past`
-- **Тип:** `@field_validator('expiry_date')`
-- **Назначение:** Вызывает `ValueError`, если `expiry_date` в прошлом.
+- **Type:** `@field_validator('expiry_date')`
+- **Purpose:** Raises `ValueError` if `expiry_date` is in the past (and not `None`).
 
-### 1.5. `Traceability.check_dates_consistency`
-- **Тип:** `@model_validator`
-- **Назначение:** Вызывает `ValueError`, если указаны обе даты, но `expiry_date` ≤ `production_date`.
+### 1.5. `Traceability.check_production_not_future`
+- **Type:** `@field_validator('production_date')`
+- **Purpose:** Raises `ValueError` if `production_date` is in the future (and not `None`).
 
 ### 1.6. `Traceability.check_expiry_tracking`
-- **Тип:** `@model_validator`
-- **Назначение:** При `tracking_type = EXPIRY_TRACKED` требует наличия `production_date` и `expiry_date`.
+- **Type:** `@model_validator`
+- **Purpose:** When `tracking_type = EXPIRY_TRACKED`, requires both `production_date` and `expiry_date`. Raises `ValueError` if any is missing.
 
 ### 1.7. `StorageRequirements.check_hazard_consistency`
-- **Тип:** `@model_validator`
-- **Назначение:** Обеспечивает, что `hazard_class` указан тогда и только тогда, когда `storage_condition = HAZARDOUS`.
+- **Type:** `@model_validator`
+- **Purpose:**  
+  - If `storage_condition = HAZARDOUS`, `hazard_class` must be provided.  
+  - If `hazard_class` is provided, `storage_condition` must be `HAZARDOUS`.  
+  Raises `ValueError` on mismatch.
 
 ### 1.8. `StorageRequirements.check_temperature_required`
-- **Тип:** `@model_validator`
-- **Назначение:** Требует `temperature_regime`, когда `storage_condition` равно `PERISHABLE`, `TEMPERATURE_CONTROLLED` или `MEDICINE`.
+- **Type:** `@model_validator`
+- **Purpose:** If `storage_condition` is `PERISHABLE`, `TEMPERATURE_CONTROLLED` or `MEDICINE`, then `temperature_regime` is required. Raises `ValueError` if missing.
 
 ### 1.9. `StorageRequirements.recommendations_validator`
-- **Тип:** `@model_validator`
-- **Назначение:** Выводит предупреждение, если `storage_condition = ELECTRONICS`, а `temperature_regime` не указан.
+- **Type:** `@model_validator`
+- **Purpose:** Prints a warning (non‑blocking) if `storage_condition = ELECTRONICS` and `temperature_regime` is missing.
 
 ### 1.10. `Classification.validate_size_moving`
-- **Тип:** `@model_validator`
-- **Назначение:** Запрещает `FAST_MOVING` для товаров с размером `HEAVY` или `OVERSIZED`.
+- **Type:** `@model_validator`
+- **Purpose:** If `size_type` is `HEAVY` or `OVERSIZED`, then `moving_type` cannot be `FAST_MOVING`. Raises `ValueError` otherwise.
 
 ### 1.11. `Classification.validate_category`
-- **Тип:** `@model_validator`
-- **Назначение:** Для `abc_category = A` требует, чтобы `moving_type` был `FAST_MOVING` или `NORMAL_MOVING`.
+- **Type:** `@model_validator`
+- **Purpose:** For `abc_category = A`, requires `moving_type` to be either `FAST_MOVING` or `NORMAL_MOVING`. Raises `ValueError` otherwise.
 
 ---
 
-## 2. Кросс‑валидаторы в `BaseProduct`
+## 2. Cross‑Validators in `BaseProduct`
 
-Все кросс‑валидаторы — методы с декоратором `@model_validator(mode='after')`.
+All cross‑validators are `@model_validator(mode='after')` methods.
 
 ### 2.1. `validate_stgc_requirements`
-- **Назначение:**
-  - Если `storage_condition` равно `PERISHABLE` или `MEDICINE`, то `tracking_type` должен быть `EXPIRY_TRACKED`.
-  - Если `storage_condition = ELECTRONICS`, то `is_static_sensitive` должно быть `True`.
+- **Purpose:**  
+  - If `storage_requirements.storage_condition` is `PERISHABLE` or `MEDICINE`, then `traceability.tracking_type` must be `EXPIRY_TRACKED`.  
+  - If `storage_requirements.storage_condition` is `ELECTRONICS`, then `handling.is_static_sensitive` must be `True`.  
+  Raises `ValueError` on violation.
 
-### 2.2. `check_timestamps`
-- **Назначение:** Проверяет, что `updated_at` не раньше `created_at`.
+### 2.2. `validate_timestamps`
+- **Purpose:** Ensures that `updated_at` is not earlier than `created_at`. Raises `ValueError` if `updated_at < created_at`.
 
-### 2.3. `validate_units`
-- **Назначение:** Проверяет совместимость `unit_of_measure`, `tracking_type`, `physical_state` и `packaging_type`:
-  - Весовой учёт → единица в `{кг, г}`.
-  - Поштучный учёт → единица в `{шт, кор, пал, компл}`.
-  - Комплекты → единица в `{компл, шт}`.
-  - Жидкости → единица в `{л, мл}`, упаковка не `коробка`.
-  - Газы → единица в `{л, мл, м³}`, упаковка `баллон` или `бочка`, `requires_ventilation = True`.
-  - Насыпные → единица веса или `м³`.
+### 2.3. `validate_handlings`
+- **Purpose:** If `handling.is_stackable` is `True` and `classification.size_type` is `HEAVY` or `OVERSIZED`, raises `ValueError` because heavy/oversized products cannot be stackable.
 
-### 2.4. `validate_size_type`
-- **Назначение:** Проверяет требования к габаритам в зависимости от `size_type`:
-  - `HEAVY` → `weight_kg` указан и ≥ `HEAVY_MIN_KG`.
-  - `OVERSIZED` → хотя бы один габарит > `OVERSIZED_MIN_CM`.
-  - `LIGHT` → `weight_kg` указан и ≤ `LIGHT_MAX_KG`.
-  - `SMALL_PARTS` → хотя бы один габарит < `SMALL_PARTS_MAX_CM`.
+### 2.4. `validate_role`
+- **Purpose:** If `role_type = RETURNS`, then `handling.requires_quarantine` must be `True`. Raises `ValueError` otherwise.
 
-### 2.5. `validate_handlings`
-- **Назначение:** Если `size_type` равен `HEAVY` или `OVERSIZED`, то `is_stackable` должно быть `False`.
+### 2.5. `validate_physical_state_units`
+- **Purpose:** Validates compatibility of `unit_of_measure` and `packaging_type` with the product's `physical_state`:
+  - **LIQUID:** `unit_of_measure` must be `LITER` or `MILLILITER`; `packaging_type` cannot be `BOX`.
+  - **GAS:** `unit_of_measure` must be `LITER`, `MILLILITER`, or `CUBIC_METER`; `packaging_type` must be `CYLINDER` or `DRUM` (or `None`); `handling.requires_ventilation` must be `True`.
+  - **BULK:** `unit_of_measure` must be `KILOGRAM`, `GRAM`, or `CUBIC_METER`.
+  - **SOLID:** no restrictions.
+  Raises `ValueError` on any mismatch.
 
-### 2.6. `validate_role`
-- **Назначение:** Если `role_type = RETURNS`, то `requires_quarantine` должно быть `True`.
+### 2.6. `validate_tracking_type_units`
+- **Purpose:** Validates that `unit_of_measure` is appropriate for the given `traceability.tracking_type`:
+  - **WEIGHT_BASED:** allowed units: `KILOGRAM`, `GRAM`, `LITER`, `MILLILITER`, `CUBIC_METER`.
+  - **PIECE:** allowed units: `PIECE`, `BOX`, `PALLET`, `SET`.
+  - **KIT:** allowed units: `SET`, `PIECE`.
+  Raises `ValueError` if `unit_of_measure` is not in the allowed set.
+
+### 2.7. `validate_tracking_type_physical_state_compatibility`
+- **Purpose:** Ensures that certain tracking types are not used with incompatible physical states:
+  - For `physical_state` in `(LIQUID, GAS, BULK)`, `tracking_type` cannot be `PIECE` or `KIT`.
+  Raises `ValueError` if violated.
+
+### 2.8. `validate_size_type_heavy`
+- **Purpose:** If `classification.size_type = HEAVY`:
+  - `dimensions.weight_kg` must be provided.
+  - `dimensions.weight_kg` must be ≥ `HEAVY_MIN_KG`.
+  Raises `ValueError` otherwise.
+
+### 2.9. `validate_size_type_oversized`
+- **Purpose:** If `classification.size_type = OVERSIZED`:
+  - At least one of `dimensions.width_cm`, `height_cm`, `depth_cm` must be provided.
+  - At least one of those must be > `OVERSIZED_MIN_CM`.
+  Raises `ValueError` otherwise.
+
+### 2.10. `validate_size_type_light`
+- **Purpose:** If `classification.size_type = LIGHT`:
+  - `dimensions.weight_kg` must be provided.
+  - `dimensions.weight_kg` must be ≤ `LIGHT_MAX_KG`.
+  Raises `ValueError` otherwise.
+
+### 2.11. `validate_size_type_small_parts`
+- **Purpose:** If `classification.size_type = SMALL_PARTS`:
+  - At least one of `dimensions.width_cm`, `height_cm`, `depth_cm` must be provided.
+  - At least one of those must be < `SMALL_PARTS_MAX_CM`.
+  Raises `ValueError` otherwise.

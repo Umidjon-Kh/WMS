@@ -1,8 +1,10 @@
 # Product Model Documentation
 
-The `BaseProduct` class is the core model representing a product in the Warehouse Management System. It consists of several compositions that group related attributes.
+## `BaseProduct`
 
-## Fields
+The `BaseProduct` class is the core model representing a product in the Warehouse Management System. It consists of several compositions that group related attributes, and a set of cross‑validators that ensure consistency between compositions.
+
+### Fields
 
 | Field | Type | Description | Required |
 |-------|------|-------------|----------|
@@ -14,25 +16,25 @@ The `BaseProduct` class is the core model representing a product in the Warehous
 | `status` | `ProductStatus` (enum) | Current lifecycle status | Yes |
 | `description` | `Optional[DES_VALID]` | Optional product description | No |
 
-## Compositions
+### Compositions
 
 | Composition | Description |
 |-------------|-------------|
-| `dimensions` | Physical dimensions and weight |
+| `dimensions` | Physical dimensions and weight (see [Compositions](compositions_info.md)) |
 | `handling` | Handling flags (fragile, stackable, etc.) |
 | `traceability` | Tracking type, production and expiry dates |
 | `storage_requirements` | Storage conditions (hazardous, temperature, packaging) |
 | `classification` | Size type, moving type, ABC category |
 
-Each composition is defined in its own module and contains its own validations.
+Each composition is defined in its own module and contains its own validators. See [`compositions_info.md`](compositions_info.md) for details.
 
-## Technical Fields
+### Technical Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `created_at` | `datetime` | Timestamp of creation (auto-set) |
 | `updated_at` | `datetime` | Timestamp of last update (auto-set) |
 
-## Cross-Validations
+### Cross‑Validators
 
-The `BaseProduct` class includes several cross‑validators that ensure consistency between different compositions. See the `Validators.md` file for details.
+The `BaseProduct` class includes several cross‑validators that enforce business rules involving multiple compositions. A complete list with descriptions can be found in [`validators_info.md`](validators_info.md) (section “Cross‑Validators in BaseProduct”).
