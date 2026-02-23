@@ -1,3 +1,4 @@
+# Product packages
 from .product import BaseProduct, Dimensions, StorageRequirements, HandlingAttributes, Classification, Traceability
 from .product.enums import (
     ProductPhysicalState,
@@ -13,6 +14,9 @@ from .product.enums import (
     UnitOfMeasure,
     TemperatureRegime,
 )
+
+# Category packages
+from .category import Category
 
 __all__ = [
     'BaseProduct',
@@ -33,4 +37,6 @@ __all__ = [
     'ABCCategory',
     'UnitOfMeasure',
     'TemperatureRegime',
+    # Category Packages
+    'Category',
 ]
