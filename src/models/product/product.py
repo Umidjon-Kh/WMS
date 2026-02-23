@@ -57,7 +57,9 @@ class BaseProduct(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Las update timestamp')
 
-    # -------- Cross Validators ---------
+    # ----------------------- Cross Validators ---------------------
+
+    # ------- Storag Requirements Condition -------
     @model_validator(mode='after')
     def validate_stgc_requirements(self) -> 'BaseProduct':
         """Validating Product Storage Condition types requirements"""
@@ -77,132 +79,15 @@ class BaseProduct(BaseModel):
             raise ValueError('Electronis products must be static sensitive')
         return self
 
+    # ------- Time-Stamps ------
     @model_validator(mode='after')
-    def check_timesmaps(self) -> 'BaseProduct':
+    def check_timestamps(self) -> 'BaseProduct':
         """Validating timestamps of product"""
         if self.updated_at < self.created_at:
             raise ValueError('updated_at cant be earlier than creation_at')
         return self
 
-    @model_validator(mode='after')
-    def validate_units(self) -> 'BaseProduct':
-        """Validating unit matchings"""
-        # ------- Dict for all units type ---------
-        weight_units = {UnitOfMeasure.KILOGRAM, UnitOfMeasure.GRAM}
-        piece_units = {UnitOfMeasure.PIECE, UnitOfMeasure.BOX, UnitOfMeasure.PALLET, UnitOfMeasure.SET}
-        # volume_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER, UnitOfMeasure.CUBIC_METER}
-        liquid_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER}
-        gas_units = {UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER, UnitOfMeasure.CUBIC_METER}
-        bulk_units = weight_units | {UnitOfMeasure.CUBIC_METER}
-
-        # ------- Tracking type unit validation -------
-        # Weight based
-        if self.traceability.tracking_type == ProductTrackingType.WEIGHT_BASED:
-            # Checking unit
-            if self.unit_of_measure not in weight_units | liquid_units | gas_units:
-                raise ValueError(
-                    'For tracking type Weight-Based products units must be in kg, gram, liter, mililiter, cubic_meter'
-                )
-        # Piece
-        elif self.traceability.tracking_type == ProductTrackingType.PIECE:
-            # Checking unit
-            if self.unit_of_measure not in piece_units:
-                raise ValueError('For tracking type Piece products units must be in pc, box, pallet or set')
-        # Kit
-        elif self.traceability.tracking_type == ProductTrackingType.KIT:
-            # Checking unit
-            if self.unit_of_measure not in (UnitOfMeasure.SET, UnitOfMeasure.PIECE):
-                raise ValueError('For tracking type Kit products units must be in set or pc')
-
-        # ---------- Physical state unit validation
-        # Liquids
-        if self.physical_state == ProductPhysicalState.LIQUID:
-            # Checking unit
-            if self.unit_of_measure not in liquid_units:
-                raise ValueError('For products with physical state Liquid units must be in liter or mililiter')
-            # Checking packaging type
-            if self.storage_requirements.packaging_type == PackagingType.BOX:
-                raise ValueError('Liquid products cannot be stored in boxes')
-        # Gas
-        elif self.physical_state == ProductPhysicalState.GAS:
-            # Checking unit
-            if self.unit_of_measure not in gas_units:
-                raise ValueError(
-                    'For products with physical state Gas units must be in liter, mililiter or cubic meter'
-                )
-            # Checking packaging type for gas
-            if self.storage_requirements.packaging_type not in (PackagingType.CYLINDER, PackagingType.DRUM, None):
-                raise ValueError('For products with physical state Gas packaging type must be in cylinder or drum')
-            # Checking handling flags for gas
-            if not self.handling.requires_ventilation:
-                raise ValueError('Gas products should have requires_ventilation')
-        # Bulk
-        elif self.physical_state == ProductPhysicalState.BULK:
-            # Checking unit
-            if self.unit_of_measure not in bulk_units:
-                raise ValueError('For products physical type Bulk units must be in weight or volume')
-        return self
-
-    @model_validator(mode='after')
-    def validate_size_type(self) -> 'BaseProduct':
-        """Validating size type requirements"""
-        dims = self.dimensions
-        # Heavy
-        if self.classification.size_type == ProductSizeType.HEAVY:
-            # Checking weight noen or not
-            if dims.weight_kg is None:
-                raise ValueError('For size_type Heavy products required weight_kg field')
-            # Checking limit
-            if dims.weight_kg < HEAVY_MIN_KG:
-                raise ValueError(f'For size_type Heavy products min required weitgh is {HEAVY_MIN_KG} kg')
-
-        # Over-sized
-        elif self.classification.size_type == ProductSizeType.OVERSIZED:
-            # Checkin contains dimension or not
-            if dims.width_cm is None and dims.height_cm is None and dims.depth_cm is None:
-                raise ValueError('For size_type Over-sized products min required 1 of 3 dimension(weight/height/depth)')
-            # chekcing min cm of dimensions
-            if not (
-                dims.width_cm
-                and dims.width_cm > OVERSIZED_MIN_CM
-                or dims.height_cm
-                and dims.height_cm > OVERSIZED_MIN_CM
-                or dims.depth_cm
-                and dims.depth_cm > OVERSIZED_MIN_CM
-            ):
-                raise ValueError(f'For size_type Over-sized products min required size is {OVERSIZED_MIN_CM} cm')
-
-        # Light
-        elif self.classification.size_type == ProductSizeType.LIGHT:
-            # Checking weight is none or not
-            if dims.weight_kg is None:
-                raise ValueError('For sized_type Light products required weight_kg field')
-            # Checking max weight for light products
-            if dims.weight_kg > LIGHT_MAX_KG:
-                raise ValueError(f'For size_type Light products max required weight is {LIGHT_MAX_KG} kg')
-
-        # Small-parts
-        elif self.classification.size_type == ProductSizeType.SMALL_PARTS:
-            # Checkin contains dimension or not
-            if dims.width_cm is None and dims.height_cm is None and dims.depth_cm is None:
-                raise ValueError(
-                    'For size_type Small-parts products min required 1 of 3 dimension(weight/height/depth)'
-                )
-            # chekcing min cm of dimensions
-            if not (
-                dims.width_cm
-                and dims.width_cm < SMALL_PARTS_MAX_CM
-                or dims.height_cm
-                and dims.height_cm < SMALL_PARTS_MAX_CM
-                or dims.depth_cm
-                and dims.depth_cm < SMALL_PARTS_MAX_CM
-            ):
-                raise ValueError(f'For size_type Small-parts products max required size is {SMALL_PARTS_MAX_CM} cm')
-
-        # For other size types if we need we add conditions for them
-        # later not know caouse its not required
-        return self
-
+    # ------- Handlings ------
     @model_validator(mode='after')
     def validate_handlings(self) -> 'BaseProduct':
         """Validating handling matchings"""
@@ -213,10 +98,163 @@ class BaseProduct(BaseModel):
             raise ValueError('Heavy or oversized products cannot be stackable')
         return self
 
+    # ------- Role Type ------
     @model_validator(mode='after')
     def validate_role(self) -> 'BaseProduct':
         """Validating role type matchings"""
         # For returned products must require quarantine
         if self.role_type == ProductRoleType.RETURNS and not self.handling.requires_quarantine:
             raise ValueError('Returned products must require quarantine')
+        return self
+
+    # ------- Physical State -------
+    @model_validator(mode='after')
+    def validate_physical_state_units(self) -> 'BaseProduct':
+        """Validating unit of measure for Physical state of Product"""
+        # Liquid
+        if self.physical_state == ProductPhysicalState.LIQUID:
+            # Validating unit of measure
+            if self.unit_of_measure not in (UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER):
+                raise ValueError(
+                    f'For liquid products, unit_of_measure must be LITER or MILLILITER, got {self.unit_of_measure}'
+                )
+            # Validating packaging type
+            if self.storage_requirements.packaging_type == PackagingType.BOX:
+                raise ValueError('Liquid products cannot be stored in boxes')
+
+        # Gas
+        elif self.physical_state == ProductPhysicalState.GAS:
+            # Validating unit of measure
+            if self.unit_of_measure not in (UnitOfMeasure.LITER, UnitOfMeasure.MILLILITER, UnitOfMeasure.CUBIC_METER):
+                raise ValueError(
+                    'For gas products, unit_of_measure must be LITER, MILLILITER,'
+                    f' or CUBIC_METER, got {self.unit_of_measure}'
+                )
+            # Validating packaging type
+            if self.storage_requirements.packaging_type not in (PackagingType.CYLINDER, PackagingType.DRUM, None):
+                raise ValueError('For gas products, packaging_type must be CYLINDER or DRUM')
+            # Validating ventilation requires
+            if not self.handling.requires_ventilation:
+                raise ValueError("Gas products must have requires_ventilation = True")
+
+        # Bulk
+        elif self.physical_state == ProductPhysicalState.BULK:
+            # Validating unit of measure
+            if self.unit_of_measure not in (UnitOfMeasure.KILOGRAM, UnitOfMeasure.GRAM, UnitOfMeasure.CUBIC_METER):
+                raise ValueError(
+                    'For bulk products, unit_of_measure must be weight'
+                    f'(KILOGRAM, GRAM) or volume (CUBIC_METER), got {self.unit_of_measure}'
+                )
+        # For Solid physical state we dont have limits in units
+        return self
+
+    # -------- Tracking Type -------
+    @model_validator(mode='after')
+    def validate_tracking_type_units(self) -> 'BaseProduct':
+        """Validating units of measure for Product Tracking type units"""
+        # Weight Based
+        if self.traceability.tracking_type == ProductTrackingType.WEIGHT_BASED:
+            allowed = {
+                UnitOfMeasure.KILOGRAM,
+                UnitOfMeasure.GRAM,
+                UnitOfMeasure.LITER,
+                UnitOfMeasure.MILLILITER,
+                UnitOfMeasure.CUBIC_METER,
+            }
+            if self.unit_of_measure not in allowed:
+                raise ValueError(
+                    f'Weight-based tracking requires unit_of_measure in {allowed}, got {self.unit_of_measure}'
+                )
+        # Piece
+        elif self.traceability.tracking_type == ProductTrackingType.PIECE:
+            allowed = {UnitOfMeasure.PIECE, UnitOfMeasure.BOX, UnitOfMeasure.PALLET, UnitOfMeasure.SET}
+            if self.unit_of_measure not in allowed:
+                raise ValueError(f'Piece tracking requires unit_of_measure in {allowed}, got {self.unit_of_measure}')
+        # Kit
+        elif self.traceability.tracking_type == ProductTrackingType.KIT:
+            allowed = {UnitOfMeasure.SET, UnitOfMeasure.PIECE}
+            if self.unit_of_measure not in allowed:
+                raise ValueError(f'Kit tracking requires unit_of_measure in {allowed}, got {self.unit_of_measure}')
+        return self
+
+    # -------- Tracking Type and Physical State Compability --------
+    @model_validator(mode='after')
+    def validate_tracking_type_physical_state_compatibility(self):
+        """Validating Product physical state compability with tracking type"""
+        # Liquid, Bulk and Gas
+        if self.physical_state in (ProductPhysicalState.BULK, ProductPhysicalState.LIQUID, ProductPhysicalState.GAS):
+            if self.traceability.tracking_type in (ProductTrackingType.PIECE, ProductTrackingType.KIT):
+                raise ValueError(
+                    f'{self.physical_state.value.capitalize()} products cannot be tracked by '
+                    f'{self.traceability.tracking_type.value}'
+                )
+        return self
+
+    # --------- Size Type --------
+    @model_validator(mode='after')
+    def validate_size_type_heavy(self) -> 'BaseProduct':
+        if self.classification.size_type == ProductSizeType.HEAVY:
+            # Dimensions weight_kg is required
+            if self.dimensions.weight_kg is None:
+                raise ValueError('For HEAVY products, dimensions.weight_kg is required')
+            # Validate min weight for heavy type
+            if self.dimensions.weight_kg < HEAVY_MIN_KG:
+                raise ValueError(
+                    f'For HEAVY products, weight_kg must be ≥ {HEAVY_MIN_KG} kg, got {self.dimensions.weight_kg}'
+                )
+        return self
+
+    @model_validator(mode='after')
+    def validate_size_type_oversized(self):
+        if self.classification.size_type == ProductSizeType.OVERSIZED:
+            # Dimension minimum 1 of 3 required dims
+            if (
+                self.dimensions.width_cm is None
+                and self.dimensions.height_cm is None
+                and self.dimensions.depth_cm is None
+            ):
+                raise ValueError(
+                    'For OVERSIZED products, at least one dimension (width_cm, height_cm, depth_cm) must be provided'
+                )
+            # Validating requirements for over-sized type minimums
+            if not (
+                (self.dimensions.width_cm and self.dimensions.width_cm > OVERSIZED_MIN_CM)
+                or (self.dimensions.height_cm and self.dimensions.height_cm > OVERSIZED_MIN_CM)
+                or (self.dimensions.depth_cm and self.dimensions.depth_cm > OVERSIZED_MIN_CM)
+            ):
+                raise ValueError(f'For OVERSIZED products, at least one dimension must be > {OVERSIZED_MIN_CM} cm')
+        return self
+
+    @model_validator(mode='after')
+    def validate_size_type_light(self):
+        if self.classification.size_type == ProductSizeType.LIGHT:
+            # Dimensions weight_kg is required
+            if self.dimensions.weight_kg is None:
+                raise ValueError('For LIGHT products, dimensions.weight_kg is required')
+            # Validating max weight for light type
+            if self.dimensions.weight_kg > LIGHT_MAX_KG:
+                raise ValueError(
+                    f'For LIGHT products, weight_kg must be ≤ {LIGHT_MAX_KG} kg, got {self.dimensions.weight_kg}'
+                )
+        return self
+
+    @model_validator(mode='after')
+    def validate_size_type_small_parts(self):
+        if self.classification.size_type == ProductSizeType.SMALL_PARTS:
+            # Dimensions minimum 1 of 3 required
+            if (
+                self.dimensions.width_cm is None
+                and self.dimensions.height_cm is None
+                and self.dimensions.depth_cm is None
+            ):
+                raise ValueError(
+                    'For SMALL_PARTS products, at least one dimension (width_cm, height_cm, depth_cm) must be provided'
+                )
+            # Validating maximum limit for small-parts type
+            if not (
+                (self.dimensions.width_cm and self.dimensions.width_cm < SMALL_PARTS_MAX_CM)
+                or (self.dimensions.height_cm and self.dimensions.height_cm < SMALL_PARTS_MAX_CM)
+                or (self.dimensions.depth_cm and self.dimensions.depth_cm < SMALL_PARTS_MAX_CM)
+            ):
+                raise ValueError(f'For SMALL_PARTS products, at least one dimension must be < {SMALL_PARTS_MAX_CM} cm')
         return self
