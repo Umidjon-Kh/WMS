@@ -43,12 +43,12 @@ class CtgStorageSettings(BaseModel):
     @model_validator(mode='after')
     def validate_zones_consistency(self) -> 'CtgStorageSettings':
         """Validating zones consistensy"""
-        if self.default_picking_zone_id and not self.default_storage_zone_id:
+        if self.default_picking_zone_id is not None and self.default_storage_zone_id is None:
             warn('Picking zone is set but storage zone is not. This might cause issues during putaway.', UserWarning)
         if self.putaway_strategy and not self.default_storage_zone_id:
             warn(
                 f'Putaway strategy "{self.putaway_strategy.value}" is set'
-                ' but no storage zone defined. Storage zone is recommended.',
+                'but no storage zone defined. Storage zone is recommended.',
                 UserWarning,
             )
         return self

@@ -73,7 +73,7 @@ class CtgDefaults(BaseModel):
     def validate_stgc_requirements(self) -> 'CtgDefaults':
         """Validating Product Storage Condition types requirements"""
         # Validating for Perishable and Traceability products requirements
-        if self.default_storage_condition and self.default_tracking_type:
+        if self.default_storage_condition is not None and self.default_tracking_type is not None:
             if (
                 self.default_storage_condition in (ProductStorageCondition.PERISHABLE, ProductStorageCondition.MEDICINE)
                 and self.default_tracking_type != ProductTrackingType.EXPIRY_TRACKED
@@ -85,7 +85,7 @@ class CtgDefaults(BaseModel):
     @model_validator(mode='after')
     def validate_tracking_type_units(self) -> 'CtgDefaults':
         """Validating units of measure for Product Tracking type units"""
-        if self.default_tracking_type and self.default_unit_of_measure:
+        if self.default_tracking_type is not None and self.default_unit_of_measure is not None:
             # Weight Based
             if self.default_tracking_type == ProductTrackingType.WEIGHT_BASED:
                 allowed = {

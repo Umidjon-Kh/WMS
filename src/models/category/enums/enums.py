@@ -24,3 +24,13 @@ class CycleCountFrequency(str, Enum):
     QUARTERLY = 'quarterly'
     YEARLY = 'yearly'
     CUSTOM = 'custom'  # custom days
+
+
+class OrderFrequency(str, Enum):
+    DAILY = 'daily'
+    WEEKLY = 'weekly'
+    BIWEEKLY = 'biweekly'  # in two weeks
+    MONTHLY = 'monthly'
+    QUARTERLY = 'quarterly'
+    YEARLY = 'yearly'
+    CUSTOM = 'custom'
