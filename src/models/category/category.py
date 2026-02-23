@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Annotated, Optional
-from .constants import NAME_VALID, DES_VALID, POSITIVE_INT, PATH_URL, SKU_VALID
+from .constants import NAME_VALID, DES_VALID, POSITIVE_INT, PATH_URL, CODE_VALID
 
 
 class Category(BaseModel):
@@ -18,7 +18,7 @@ class Category(BaseModel):
 
     # ------- main fields -------
     id: UUID = Field(default_factory=uuid4, frozen=True)
-    sku: SKU_VALID
+    sku: CODE_VALID
     name: NAME_VALID
     parent_id: Annotated[Optional[UUID], Field(description='Perant Category ID')] = None
     description: DES_VALID
@@ -33,6 +33,8 @@ class Category(BaseModel):
     level: Optional[POSITIVE_INT] = 0
     path: Optional[PATH_URL] = ''
     sort_order: Optional[POSITIVE_INT] = 0
+
+    # -------- Compositions ----------
 
     # --------- Validators and Cross Validators ---------
     # -------- Time-Stamps ---------
