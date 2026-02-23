@@ -1,4 +1,5 @@
 from pydantic import Field
+from uuid import UUID
 from typing import Annotated, Optional
 
 # Min Value Constants for sized type
@@ -12,6 +13,7 @@ SMALL_PARTS_MAX_CM = 30.0  # max size for small parts size type
 SKU_VALID = Annotated[
     str, Field(pattern=r'^[A-Z0-9]{3,20}$', min_length=1, max_length=50, description='Unique SKU (Stock Keeping Unit)')
 ]
+ID_VALID = Annotated[UUID, Field(frozen=True)]
 POSITIVE_F = Annotated[float, Field(ge=0)]
 NAME_VALID = Annotated[str, Field(min_length=1, max_length=50, json_schema_extra={'strip_whitespace': True})]
 DES_VALID = Annotated[Optional[str], Field(max_length=300)]

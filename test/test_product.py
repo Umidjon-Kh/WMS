@@ -1,5 +1,6 @@
 import pytest
 from datetime import date, timedelta
+import uuid
 from src.models import (
     BaseProduct,
     Traceability,
@@ -31,6 +32,7 @@ def minimal_product(**kwargs):
     defaults = {
         'sku': 'TEST001',
         'name': 'Test Product',
+        'category_id': uuid.UUID('12345678-1234-5678-1234-567812345678'),
         'unit_of_measure': UnitOfMeasure.PIECE,
         'physical_state': ProductPhysicalState.SOLID,
         'role_type': ProductRoleType.FINISHED_GOOD,
@@ -561,6 +563,7 @@ def test_complex_product_creation():
     product = BaseProduct(
         sku='COMPLEX01',
         name='Complex Product',
+        category_id=uuid.UUID('12345678-1234-5678-1234-567812345678'),
         unit_of_measure=UnitOfMeasure.KILOGRAM,
         physical_state=ProductPhysicalState.SOLID,
         role_type=ProductRoleType.FINISHED_GOOD,
