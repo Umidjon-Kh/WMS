@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, Annotated
+from warnings import warn
 from ...product.enums import (
     ProductStorageCondition,
     TemperatureRegime,
@@ -81,7 +82,7 @@ class CtgDefaults(BaseModel):
             self.default_storage_condition == ProductStorageCondition.ELECTRONICS
             and not self.default_temperature_regime
         ):
-            print('Recommendation: For product type Electronics recommendts temperature_regime')
+            warn('Recommendation: For product type Electronics recommendts temperature_regime', UserWarning)
         return self
 
     # ------- Storag Requirements Condition -------

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, Annotated
+from warnings import warn
 from ..enums import ProductStorageCondition, HazardClass, TemperatureRegime, PackagingType
 
 
@@ -54,5 +55,5 @@ class StorageRequirements(BaseModel):
         """Recommendation for StorageRequirements"""
         # For Electronics products recommend tempertaure_regime
         if self.storage_condition == ProductStorageCondition.ELECTRONICS and not self.temperature_regime:
-            print('Recommendation: For product type Electronics recommendts temperature_regime')
+            warn('Recommendation: For product type Electronics recommendts temperature_regime', UserWarning)
         return self

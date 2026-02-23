@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Annotated
+from warnings import warn
 
 
 class HandlingAttributes(BaseModel):
@@ -39,5 +40,5 @@ class HandlingAttributes(BaseModel):
         """Recommendations for handling type products"""
         # For Odor sensitive products recommend ventilation
         if self.is_odor_sensitive and not self.requires_ventilation:
-            print('Recomendation: For Odor sensitive products recommends ventailation True')
+            warn('Recomendation: For Odor sensitive products recommends ventailation True', UserWarning)
         return self
